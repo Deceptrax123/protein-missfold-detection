@@ -1,7 +1,7 @@
 from Bio.PDB import PDBParser
 from Bio.SeqUtils import seq1
 import torch
-from transformers import T5Tokenizer, T5EncoderModel
+from transformers import AutoTokenizer, AutoModel
 
 def extract_sequence_from_pdb(pdb_path, chain_id=None):
     parser = PDBParser(QUIET=True)
@@ -14,10 +14,10 @@ def extract_sequence_from_pdb(pdb_path, chain_id=None):
                 continue
             residues = []
             for residue in chain:
-                if residue.id[0] == " ":  # standard residue
+                if residue.id[0] == " ":
                     residues.append(residue.resname)
             sequence += "".join([seq1(res) for res in residues])
-        break  # first model only
+        break 
     
     return sequence
 
@@ -25,18 +25,22 @@ sequence = extract_sequence_from_pdb(r"AlphaFold_model_PDBs\AlphaFold_model_PDBs
 print(sequence)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(device)
 
-model_name = "Rostlab/prot_t5_xl_uniref50"
+model_name = "facebook/esm2_t33_650M_UR50D"
 
-tokenizer = T5Tokenizer.from_pretrained(model_name, do_lower_case=False, use_fast=True).to(device)
-model = T5EncoderModel.from_pretrained(model_name).to(device)
+tokenizer = AutoTokenizer.from_pretrained(model_name, do_lower_case=False, use_fast=True)
+model = AutoModel.from_pretrained(model_name).to(device)
 model.eval()
 
-ids = tokenizer.batch_encode_plus(sequence, add_special_tokens=True, padding="longest",return_tensors='pt').to(device)
+inputs = tokenizer(sequence, return_tensors="pt")
+inputs = {k: v.to(device) for k, v in inputs.items()}
 with torch.no_grad():
-    embedding_rpr = model(
-              ids.input_ids, 
-              attention_mask=ids.attention_mask
-              )
+    outputs = model(**inputs)
 
-print(embedding_rpr[0])
+embeddings = outputs.last_hidden_state
+
+embeddings = embeddings[0]
+embeddings = embeddings[1:-1]
+
+print(embeddings)
