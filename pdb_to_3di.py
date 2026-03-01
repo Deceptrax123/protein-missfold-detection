@@ -77,11 +77,9 @@ def run_foldseek_pdb_to_3di(
     if not pdb_paths:
         return {}
 
-    # Use a single directory for createdb (can be one file or many)
     input_dir = work_dir / "input"
     input_dir.mkdir(parents=True, exist_ok=True)
 
-    # Copy/symlink files into input dir so createdb sees them
     for src in pdb_paths:
         dst = input_dir / src.name
         if src.resolve() != dst.resolve():
@@ -115,7 +113,6 @@ def run_foldseek_pdb_to_3di(
             f"Foldseek createdb failed:\n{r1.stderr}\n{r1.stdout}"
         )
 
-    # 2. Self-search to get alignments (query dir vs db we just created)
     cmd_search = [
         foldseek_bin,
         "easy-search",
@@ -140,16 +137,12 @@ def run_foldseek_pdb_to_3di(
             f"Foldseek easy-search failed:\n{r2.stderr}\n{r2.stdout}"
         )
 
-    # 3. Parse result TSV
-    # Foldseek may write result, result.m8, or result.tsv depending on version
     candidates = list(work_dir.glob("result*")) + [result_base]
     result_tsv = next(
         (f for f in candidates if f.is_file() and f.stat().st_size > 0),
         None,
     )
 
-    # Format: query\ttarget\tqaln\ttaln\tfident
-    # For self-hits (query==target), qaln is the 3Di alignment; remove gaps to get full 3Di
     out: dict[str, str] = {}
     seen: set[str] = set()
 
@@ -177,7 +170,6 @@ def run_foldseek_pdb_to_3di(
                     out[qid] = seq
                     seen.add(qid)
 
-    # If we didn't get self-hits, take first hit per query
     if len(out) < len(pdb_paths):
         seen.clear()
         with open(result_tsv, encoding="utf-8", errors="replace") as f:
@@ -291,3 +283,4 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
+
