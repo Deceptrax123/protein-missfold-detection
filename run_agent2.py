@@ -74,7 +74,7 @@ def run_test_suite():
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Agent 2: The Specialist -- Protein Misfolding Severity Classifier"
+        description="Protein Misfolding Severity Classifier"
     )
     parser.add_argument("--health", action="store_true", help="Run API health check")
     parser.add_argument("--sequence", type=str, help="3Di structural sequence")
