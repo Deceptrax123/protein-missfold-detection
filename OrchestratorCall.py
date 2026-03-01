@@ -5,11 +5,7 @@ from dotenv import load_dotenv
 load_dotenv()
 MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY")
 
-<<<<<<< Updated upstream
-client = Mistral(api_key="")
-=======
 client = Mistral(api_key=MISTRAL_API_KEY)
->>>>>>> Stashed changes
 
 inputs = [
     {"role":"user","content":"Get me information on the following protein: MRTQLAVKDPGSIYFWNLEHCRGTQVAQMLKDYEPNTIRGHWLVSSKADQYFVKETLPRGIMNQW"}
