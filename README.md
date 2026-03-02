@@ -6,11 +6,11 @@ Multi-agent system for detecting protein misfolding from amino acid sequences.
 
 | Agent | Role | Model |
 |-------|------|-------|
-| Agent 1 - The Mapper | Anomaly detection via ProstT5 3Di translation | Facebook/ESM2 |
-| **Agent 2 - The Specialist** | Severity classification of structural anomalies | ministral-14b-latest |
-| Agent 3 - The Orchestrator | Synthesize findings into human-readable reports | Mistral Large |
+| Agent 1 - The Orchestrator | Synthesize findings into human-readable reports | mistral-medium-latest |
+| Agent 2 - The Mapper | Anomaly detection for 3Di translation | Facebook/ESM2 |
+| LLM - The Specialist | Severity classification of structural anomalies | mistral-large-latest |
 
-## Agent 2: The Specialist (Severity Classifier)
+## LLM: The Specialist (Severity Classifier)
 
 Takes 3Di structural sequences (from Agent 1) and classifies the severity of detected anomalies using thermodynamic stability analysis grounded in the Rocklin MegaScale dataset.
 
@@ -33,9 +33,9 @@ Takes 3Di structural sequences (from Agent 1) and classifies the severity of det
 }
 ```
 
-### Integration with Agent 1 and Agent 3
+### Integration with Agent 1 and Agent 2
 
-Agent 2 receives input from Agent 1 (The Mapper) and passes output to Agent 3 (The Orchestrator):
+Agent 2 receives input from Agent 1 (The Mapper) and passes output to Agent 2 (The Orchestrator):
 
 ```python
 # Agent 1 output -> Agent 2 input
