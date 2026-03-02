@@ -54,3 +54,30 @@ agent3_input = {
     "analysis": result.to_dict()
 }
 ```
+
+## Foldseek Binary Requirement (Important)
+
+`foldseek/bin/foldseek` is tracked with Git LFS. If LFS objects are not pulled, that file will be a small text pointer instead of the real executable, and Agent 1 will fail during 3Di conversion.
+
+### One-time setup
+
+```bash
+git lfs install
+git lfs pull
+```
+
+If `foldseek` is managed as a nested repo, run LFS pull there as well:
+
+```bash
+cd foldseek
+git lfs pull
+```
+
+### Verify
+
+```bash
+ls -lh foldseek/bin/foldseek
+file foldseek/bin/foldseek
+```
+
+Expected: a large file (hundreds of MB) reported as an ELF executable, not ASCII text.

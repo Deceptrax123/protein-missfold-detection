@@ -98,9 +98,16 @@ def generate_pdf_report(report_data, output_file="ClassificationResults.pdf"):
     pdf = FPDF()
     pdf.add_page()
     pdf.set_font("Arial", size=12)
+    effective_w = pdf.w - pdf.l_margin - pdf.r_margin
     
+    def write_multiline(text, h=10):
+        # Keep cursor anchored to left margin so successive multicell calls
+        # do not end up with zero horizontal space.
+        pdf.set_x(pdf.l_margin)
+        pdf.multi_cell(effective_w, h, txt=sanitize_text(text), new_x="LMARGIN", new_y="NEXT")
+
     pdf.set_font("Arial", 'B', 16)
-    pdf.cell(200, 10, txt="Protein Misfolding Risk Analysis Report", ln=True, align='C')
+    pdf.cell(0, 10, txt="Protein Misfolding Risk Analysis Report", ln=True, align='C')
     pdf.ln(10)
     
     pdf.set_font("Arial", 'B', 12)
@@ -128,16 +135,16 @@ def generate_pdf_report(report_data, output_file="ClassificationResults.pdf"):
         
         return text.encode('latin-1', 'replace').decode('latin-1')
 
-    pdf.multi_cell(0, 10, txt=sanitize_text(f"Z-Score: {report_data.get('anomaly_z_score')}"))
-    pdf.multi_cell(0, 10, txt=sanitize_text(f"Severity Classification: {report_data.get('severity_classification')}"))
-    pdf.multi_cell(0, 10, txt=sanitize_text(f"Homolog Information: {report_data.get('homolog_information', 'N/A')}"))
+    write_multiline(f"Z-Score: {report_data.get('anomaly_z_score')}")
+    write_multiline(f"Severity Classification: {report_data.get('severity_classification')}")
+    write_multiline(f"Homolog Information: {report_data.get('homolog_information', 'N/A')}")
     pdf.ln(5)
     
     pdf.set_font("Arial", 'B', 12)
     pdf.cell(200, 10, txt="Structural Interpretation:", ln=True)
     pdf.set_font("Arial", size=12)
     
-    pdf.multi_cell(0, 10, txt=sanitize_text(raw_text))
+    write_multiline(raw_text)
     
     pdf.output(output_file)
     print(f"\nPDF Report saved as {output_file}")
