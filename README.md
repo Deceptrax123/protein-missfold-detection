@@ -57,7 +57,7 @@ agent3_input = {
 
 ## Foldseek Binary Requirement (Important)
 
-`foldseek/bin/foldseek` is tracked with Git LFS. If LFS objects are not pulled, that file will be a small text pointer instead of the real executable, and Agent 1 will fail during 3Di conversion. Note that the current foldseek binaries support only MacOS. A separate installation needs to be carried out for Linux. Windows users may test our project on WSL. 
+`foldseek/bin/foldseek` is tracked with Git LFS. If LFS objects are not pulled, that file will be a small text pointer instead of the real executable, and Agent 2 will fail during 3Di conversion. Note that the current foldseek binaries support only MacOS and Linus. Windows users may test our project on WSL. 
 
 ### One-time setup
 
