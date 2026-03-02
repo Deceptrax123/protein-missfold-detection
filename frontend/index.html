@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Misfold-Spotter | Protein Misfolding Detection</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='80' text-anchor='middle' x='50' fill='%23007bff'>🧬</text></svg>">
+    <style>
+        :root {
+            --primary-color: #4a90e2;
+            --secondary-color: #2ecc71;
+            --accent-color: #6c5ce7;
+            --dark-bg: #1a1a2e;
+            --darker-bg: #16213e;
+            --card-bg: #1f1f38;
+            --text-primary: #e8e8e8;
+            --text-secondary: #b8b8d4;
+            --border-color: #2d2d44;
+            --dna-color: #ff6b6b;
+            --protein-color: #4ecdc4;
+            --success-color: #2ecc71;
+            --warning-color: #f39c12;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--dark-bg);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: var(--text-primary);
+            overflow: hidden;
+            position: relative;
+        }
+        
+        /* Animated Background - Molecular/Protein Structure Pattern */
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background:
+                radial-gradient(circle at 10% 20%, rgba(108, 92, 231, 0.14) 0%, transparent 24%),
+                radial-gradient(circle at 90% 80%, rgba(74, 144, 226, 0.16) 0%, transparent 26%),
+                linear-gradient(120deg, rgba(78, 205, 196, 0.06) 0%, transparent 45%),
+                linear-gradient(300deg, rgba(255, 107, 107, 0.05) 0%, transparent 55%);
+            z-index: 1;
+        }
+        
+        /* Image-based Background Assets - static, horizontal, rotated */
+        .bg-dna {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 90%;
+            height: 40%;
+            background-image: url('./assets/dna.png');
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            opacity: 0.65;
+            z-index: 1;
+            pointer-events: none;
+            mix-blend-mode: screen;
+            transform: translate(-50%, -50%) rotate(-12deg);
+            filter: drop-shadow(0 0 20px rgba(255, 107, 107, 0.3));
+        }
+
+        .bg-protein {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 85%;
+            height: 45%;
+            background-image: url('./assets/protein.png');
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            opacity: 0.65;
+            z-index: 1;
+            pointer-events: none;
+            mix-blend-mode: screen;
+            transform: translate(-50%, -50%) rotate(8deg);
+            filter: drop-shadow(0 0 30px rgba(78, 205, 196, 0.3));
+        }
+
+        
+
+        
+        .container {
+            background-color: var(--card-bg);
+            border-radius: 16px;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            width: 100%;
+            max-width: 900px;
+            text-align: center;
+            border: 1px solid var(--border-color);
+            position: relative;
+            overflow: hidden;
+            z-index: 2;
+            backdrop-filter: blur(5px);
+            background: linear-gradient(145deg, var(--card-bg) 0%, rgba(31, 31, 56, 0.9) 100%);
+        }
+        
+        .container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 6px;
+            background: linear-gradient(90deg, var(--protein-color), var(--dna-color), var(--accent-color));
+        }
+        
+        .container::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            right: -50%;
+            bottom: -50%;
+            background: 
+                radial-gradient(circle at 50% 50%, rgba(108, 92, 231, 0.05) 0%, transparent 50%),
+                radial-gradient(circle at 30% 70%, rgba(74, 144, 226, 0.03) 0%, transparent 50%);
+            z-index: -1;
+        }
+        
+        .logo-header {
+            margin-bottom: 20px;
+            animation: fadeIn 1s ease-in;
+        }
+        
+        .logo-header div {
+            font-size: 64px;
+            color: var(--accent-color);
+            text-shadow: 0 0 15px rgba(108, 92, 231, 0.3);
+            margin-bottom: 15px;
+            transition: transform 0.3s;
+        }
+        
+        .logo-header div:hover {
+            transform: rotate(15deg);
+        }
+        
+        h1 {
+            color: var(--text-primary);
+            margin-bottom: 10px;
+            font-size: 36px;
+            font-weight: 700;
+            letter-spacing: -1px;
+            background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-fill-color: transparent;
+        }
+        
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 15px;
+            margin-bottom: 30px;
+            font-weight: 400;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .form-group {
+            margin-bottom: 25px;
+            text-align: left;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--primary-color);
+            font-size: 15px;
+            text-shadow: 0 1px 1px rgba(0, 0, 0, 0.3);
+        }
+        
+        .input-info {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+            font-style: italic;
+            opacity: 0.8;
+        }
+        
+        .form-group input[type="text"] {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid var(--border-color);
+            border-radius: 10px;
+            font-size: 15px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: rgba(30, 30, 48, 0.6);
+            color: var(--text-primary);
+            transition: all 0.3s;
+            box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+        
+        .form-group input[type="text"]:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.2), inset 0 2px 5px rgba(0, 0, 0, 0.2);
+            background-color: rgba(30, 30, 48, 0.8);
+        }
+        
+        .form-group input[type="text"]::placeholder {
+            color: var(--text-secondary);
+            opacity: 0.6;
+        }
+        
+        textarea {
+            width: 100%;
+            padding: 16px;
+            border: 2px solid var(--border-color);
+            border-radius: 10px;
+            font-size: 15px;
+            min-height: 200px;
+            resize: vertical;
+            box-sizing: border-box;
+            font-family: 'Courier New', 'Lucida Console', monospace;
+            transition: all 0.3s;
+            line-height: 1.6;
+            background-color: rgba(30, 30, 48, 0.6);
+            color: var(--text-primary);
+            box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+        
+        textarea:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.2), inset 0 2px 5px rgba(0, 0, 0, 0.2);
+            background-color: rgba(30, 30, 48, 0.8);
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 20px;
+            perspective: 1000px;
+        }
+        
+        button {
+            background: linear-gradient(135deg, var(--accent-color), #8b5cf6);
+            color: white;
+            border: none;
+            padding: 16px 32px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 600;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(108, 92, 231, 0.3);
+            position: relative;
+            overflow: hidden;
+            transform-style: preserve-3d;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0));
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        button:hover::before {
+            opacity: 1;
+        }
+        
+        button:hover {
+            transform: translateY(-2px) rotateX(5deg);
+            box-shadow: 0 6px 20px rgba(108, 92, 231, 0.4);
+        }
+        
+        button:active {
+            transform: translateY(0) rotateX(0);
+        }
+        
+        button:disabled {
+            background: linear-gradient(135deg, #4a5568, #2d3748);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            opacity: 0.7;
+        }
+        
+        button:disabled::before {
+            display: none;
+        }
+        
+        #downloadBtn {
+            background: linear-gradient(135deg, var(--secondary-color), #20bf6b);
+            display: none;
+        }
+        
+        #downloadBtn:hover {
+            background: linear-gradient(135deg, #27ae60, #20bf6b);
+        }
+        
+        #downloadBtn::before {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0));
+        }
+        
+        .loading {
+            margin-top: 25px;
+            font-size: 16px;
+            color: var(--text-secondary);
+            font-weight: 500;
+            padding: 15px;
+            background-color: rgba(30, 30, 48, 0.4);
+            border-radius: 10px;
+            border-left: 3px solid var(--accent-color);
+            text-align: left;
+            animation: slideIn 0.5s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        .dot-typing {
+            display: inline-block;
+        }
+        
+        .dot-typing.dot-1:after {
+            content: '.';
+            animation: dot-typing 1.5s infinite step-end;
+            color: var(--accent-color);
+        }
+        
+        @keyframes dot-typing {
+            0% { content: ''; }
+            25% { content: '.'; }
+            50% { content: '..'; }
+            75% { content: '...'; }
+            100% { content: ''; }
+        }
+        
+        .result {
+            margin-top: 30px;
+            padding: 25px;
+            border-radius: 12px;
+            background-color: rgba(30, 30, 48, 0.5);
+            text-align: left;
+            display: none;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(3px);
+            animation: fadeInUp 0.6s ease-out;
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .result h3 {
+            color: var(--text-primary);
+            margin-top: 0;
+            margin-bottom: 15px;
+            font-size: 20px;
+            border-bottom: 2px solid var(--accent-color);
+            padding-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .result pre {
+            background-color: rgba(30, 30, 48, 0.6);
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            border: 1px solid var(--border-color);
+            font-size: 14px;
+            line-height: 1.5;
+            max-height: 400px;
+            overflow-y: auto;
+            color: var(--text-primary);
+            box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.3);
+        }
+        
+        .result pre::-webkit-scrollbar {
+            width: 10px;
+        }
+        
+        .result pre::-webkit-scrollbar-track {
+            background: rgba(45, 45, 68, 0.8);
+            border-radius: 5px;
+        }
+        
+        .result pre::-webkit-scrollbar-thumb {
+            background: var(--accent-color);
+            border-radius: 5px;
+        }
+        
+        .result pre::-webkit-scrollbar-thumb:hover {
+            background: #8b5cf6;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+            animation: pulse 2s infinite;
+            box-shadow: 0 0 5px rgba(108, 92, 231, 0.5);
+        }
+        
+        @keyframes pulse {
+            0%, 100% { 
+                opacity: 1; 
+                transform: scale(1);
+            }
+            50% { 
+                opacity: 0.6; 
+                transform: scale(1.2);
+            }
+        }
+        
+        .dna-visualization {
+            margin-top: 20px;
+            padding: 20px;
+            background-color: rgba(255, 107, 107, 0.08);
+            border-radius: 10px;
+            border-left: 4px solid var(--dna-color);
+            display: none;
+            animation: fadeIn 0.5s ease-out;
+            box-shadow: 0 2px 10px rgba(255, 107, 107, 0.1);
+        }
+        
+        .dna-visualization.show {
+            display: block;
+        }
+        
+        .dna-sequence {
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            color: var(--dna-color);
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+            letter-spacing: 0.5px;
+        }
+        
+        .footer {
+            margin-top: 35px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            text-align: center;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-color);
+            opacity: 0.7;
+        }
+        
+        .footer a {
+            color: var(--accent-color);
+            text-decoration: none;
+            font-weight: 500;
+        }
+        
+        .footer a:hover {
+            text-decoration: underline;
+            color: #8b5cf6;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 25px;
+            }
+            
+            h1 {
+                font-size: 26px;
+            }
+            
+            textarea {
+                min-height: 150px;
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Image-based Animated Background Elements -->
+    <div class="bg-dna"></div>
+    <div class="bg-protein"></div>
+    
+    <div class="container">
+        <div class="logo-header">
+            <div style="font-size: 48px; color: var(--accent-color); margin-bottom: 10px;">
+                🧬
+            </div>
+        </div>
+        
+        <h1>Misfold-Spotter</h1>
+        <div class="subtitle">Protein Misfolding Detection Pipeline</div>
+        
+        <div class="form-group">
+            <label for="proteinName">Protein Name:</label>
+            <input type="text" id="proteinName" placeholder="Enter protein name (e.g., BRCA1, p53, Hemoglobin...)" autocomplete="off">
+            <div class="input-info">Provide a descriptive name for the protein being analyzed</div>
+        </div>
+
+        <div class="form-group">
+            <label for="dnaSequence">DNA Sequence:</label>
+            <textarea id="dnaSequence" placeholder="Enter DNA sequence here... (e.g., ATGCGTAACGT...)" required></textarea>
+            <div class="input-info">Enter a valid DNA sequence (A, T, C, G nucleotides only)</div>
+        </div>
+        
+        <div class="button-group">
+            <button id="submitBtn">
+                <span class="status-indicator" style="background-color: var(--accent-color);"></span>
+                Analyze Sequence
+            </button>
+            <button id="downloadBtn" disabled>
+                <span class="status-indicator" style="background-color: var(--secondary-color);"></span>
+                Download PDF Report
+            </button>
+        </div>
+        
+        <div id="loading" class="loading" style="display: none;">
+            <span class="status-indicator" style="background-color: var(--accent-color);"></span>
+            Processing sequence and generating PDF<span class="dot-typing dot-1"></span>
+        </div>
+        
+        <div id="dnaPreview" class="dna-visualization">
+            <strong>DNA Sequence Preview:</strong>
+            <div class="dna-sequence" id="dnaSequencePreview"></div>
+        </div>
+        
+        <div id="result" class="result">
+            <h3>🔬 Analysis Results:</h3>
+            <pre id="resultContent"></pre>
+        </div>
+        
+        <div class="footer">
+            <p>Misfold-Spotter © 2024 | Multi-Agent Protein Analysis System</p>
+            <p>Powered by ESM-2 and Mistral AI</p>
+        </div>
+    </div>
+    
+    <script>
+        let pdfDownloadUrl = null;
+
+        document.getElementById('dnaSequence').addEventListener('input', function() {
+            const sequence = this.value;
+            const previewElement = document.getElementById('dnaSequencePreview');
+            const previewContainer = document.getElementById('dnaPreview');
+
+            if (sequence.trim()) {
+                previewElement.innerHTML = formatDNASequence(sequence);
+                previewContainer.classList.add('show');
+            } else {
+                previewContainer.classList.remove('show');
+            }
+        });
+
+        function formatDNASequence(sequence) {
+            const cleanSequence = sequence.replace(/\s+/g, '').toUpperCase();
+            let formatted = '';
+            for (let i = 0; i < cleanSequence.length; i += 60) {
+                const chunk = cleanSequence.substring(i, i + 60);
+                let coloredChunk = '';
+                for (const char of chunk) {
+                    let color = '#6c757d';
+                    if (char === 'A') color = '#dc3545';
+                    else if (char === 'T') color = '#28a745';
+                    else if (char === 'C') color = '#007bff';
+                    else if (char === 'G') color = '#ffc107';
+                    coloredChunk += `<span style="color: ${color}; font-weight: bold;">${char}</span>`;
+                }
+                formatted += coloredChunk + '<br>';
+            }
+            return formatted;
+        }
+
+        document.getElementById('submitBtn').addEventListener('click', async function() {
+            const proteinName = document.getElementById('proteinName').value.trim();
+            const dnaSequence = document.getElementById('dnaSequence').value;
+
+            if (!proteinName) {
+                alert('Please enter a protein name');
+                document.getElementById('proteinName').focus();
+                return;
+            }
+
+            if (!dnaSequence.trim()) {
+                alert('Please enter a DNA sequence');
+                document.getElementById('dnaSequence').focus();
+                return;
+            }
+
+            const cleanSequence = dnaSequence.replace(/\s+/g, '').toUpperCase();
+            if (!/^[ATCG]+$/.test(cleanSequence)) {
+                alert('Please enter a valid DNA sequence containing only A, T, C, G nucleotides');
+                return;
+            }
+
+            document.getElementById('submitBtn').disabled = true;
+            document.getElementById('downloadBtn').style.display = 'none';
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('result').style.display = 'none';
+
+            try {
+                const response = await fetch('/api/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        protein_name: proteinName,
+                        dna_sequence: cleanSequence
+                    })
+                });
+
+                if (!response.ok) {
+                    const errData = await response.json().catch(() => ({}));
+                    throw new Error(errData.error || `Server error: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                if (data.status !== 'success') {
+                    throw new Error(data.error || 'Unknown error occurred');
+                }
+
+                document.getElementById('resultContent').textContent = JSON.stringify(data.results, null, 2);
+                document.getElementById('result').style.display = 'block';
+
+                pdfDownloadUrl = data.results.pdf_url;
+
+                document.getElementById('downloadBtn').style.display = 'inline-block';
+                document.getElementById('downloadBtn').disabled = false;
+
+            } catch (error) {
+                console.error('Error:', error);
+                alert(`An error occurred: ${error.message}`);
+            } finally {
+                document.getElementById('submitBtn').disabled = false;
+                document.getElementById('loading').style.display = 'none';
+            }
+        });
+
+        document.getElementById('downloadBtn').addEventListener('click', async function() {
+            if (!pdfDownloadUrl) {
+                alert('No PDF available to download');
+                return;
+            }
+
+            try {
+                const response = await fetch(pdfDownloadUrl);
+
+                if (!response.ok) {
+                    throw new Error(`Failed to download PDF: ${response.status}`);
+                }
+
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'protein_analysis_report.pdf';
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+
+            } catch (error) {
+                console.error('Download error:', error);
+                alert(`Failed to download PDF: ${error.message}`);
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,6 +1,6 @@
 import os
 import json
-import datetime
+import re
 from mistralai import Mistral
 from fpdf import FPDF
 from dotenv import load_dotenv
@@ -142,16 +142,14 @@ def generate_pdf_report(report_data, output_file="ClassificationResults.pdf"):
     pdf.output(output_file)
     print(f"\nPDF Report saved as {output_file}")
 
-def main():
+def _run_orchestrator_loop(protein_name, protein_sequence, output_file="ClassificationResults.pdf"):
+    """
+    Non-interactive orchestrator loop. Runs the full Mistral tool-calling pipeline
+    (Agent 1 -> Agent 2 -> final report) and generates a PDF.
+
+    Returns the absolute path to the generated PDF, or raises on failure.
+    """
     client = Mistral(api_key=MISTRAL_API_KEY)
-
-    print("=== Protein Misfolding Risk Analysis ===")
-    protein_name = input("Enter Protein Name (or press Enter for 'Unknown_Protein'): ").strip() or "Unknown_Protein"
-    protein_sequence = input("Enter DNA or Amino Acid Sequence: ").strip()
-
-    if not protein_sequence:
-        print("Error: A sequence must be provided.")
-        return
 
     prompt = f"""Get me information on the following protein {protein_name} with the sequence {protein_sequence}
 
@@ -194,13 +192,13 @@ def main():
             for tool_call in message.tool_calls:
                 func_name = tool_call.function.name
                 args = json.loads(tool_call.function.arguments)
-                
+
                 print(f"\n--- Calling Tool: {func_name} ---")
-                
+
                 if func_name == "run_esm_agent":
                     esm_ag = agent_1.MapperAgent()
                     status_json = esm_ag.run(args['sequence'], args['name'])
-                    
+
                     if status_json.get("status") == "success":
                         result_str = json.dumps({
                             "z_score": str(status_json["z_score"]),
@@ -208,7 +206,7 @@ def main():
                         })
                     else:
                         result_str = json.dumps({"error": status_json.get('message', 'Unknown error')})
-                        
+
                 elif func_name == "run_severity_checker":
                     sev_result = run_agent2.run_classification(
                         sequence_3di=args['sequence_3di'],
@@ -216,12 +214,12 @@ def main():
                         original_sequence=args.get('original_sequence', ''),
                     )
                     result_str = json.dumps(sev_result.to_dict())
-                
+
                 else:
                     result_str = json.dumps({"error": "Unknown tool"})
-                
+
                 print(f"Tool Result: {result_str}")
-                
+
                 messages.append({
                     "role": "tool",
                     "name": func_name,
@@ -229,23 +227,70 @@ def main():
                     "tool_call_id": tool_call.id
                 })
         else:
-            final_content = message.content
+            final_content = message.content or ""
             print("\n--- Final Analysis ---")
             print(final_content)
-            
-            try:
-                # Strip markdown code blocks if present
-                clean_content = final_content.strip()
-                if clean_content.startswith("```json"):
-                    clean_content = clean_content[7:]
-                if clean_content.endswith("```"):
-                    clean_content = clean_content[:-3]
-                
-                report_data = json.loads(clean_content.strip())
-                generate_pdf_report(report_data)
-            except Exception as e:
-                print(f"Error parsing final JSON or generating PDF: {e}")
-            break
+
+            clean_content = final_content.strip()
+            if clean_content.startswith("```json"):
+                clean_content = clean_content[7:]
+            if clean_content.startswith("```"):
+                clean_content = clean_content[3:]
+            if clean_content.endswith("```"):
+                clean_content = clean_content[:-3]
+            clean_content = clean_content.strip()
+
+            report_data = None
+
+            if clean_content:
+                json_match = re.search(r'\{[\s\S]*\}', clean_content)
+                if json_match:
+                    try:
+                        report_data = json.loads(json_match.group())
+                    except json.JSONDecodeError:
+                        print(f"[WARNING] Could not parse JSON from model response")
+
+            if report_data is None:
+                report_data = {
+                    "output": {"raw_text": final_content or "Analysis could not produce structured output.", "timestamp": ""},
+                    "anomaly_z_score": None,
+                    "severity_classification": "Unknown",
+                    "homolog_information": "N/A",
+                }
+
+            generate_pdf_report(report_data, output_file)
+            return os.path.abspath(output_file), report_data
+
+
+def call_orchestrator(protein_name, dna_sequence, output_file="ClassificationResults.pdf"):
+    """
+    Public entry point for programmatic (server) usage.
+    Accepts protein_name and dna_sequence, runs the full pipeline,
+    and returns (pdf_path, report_data).
+    """
+    if not protein_name:
+        protein_name = "Unknown_Protein"
+    if not dna_sequence:
+        raise ValueError("A DNA sequence must be provided.")
+
+    return _run_orchestrator_loop(protein_name, dna_sequence, output_file)
+
+
+def main():
+    print("=== Protein Misfolding Risk Analysis ===")
+    protein_name = input("Enter Protein Name (or press Enter for 'Unknown_Protein'): ").strip() or "Unknown_Protein"
+    protein_sequence = input("Enter DNA or Amino Acid Sequence: ").strip()
+
+    if not protein_sequence:
+        print("Error: A sequence must be provided.")
+        return
+
+    try:
+        pdf_path, _ = call_orchestrator(protein_name, protein_sequence)
+        print(f"\nPDF Report saved at: {pdf_path}")
+    except Exception as e:
+        print(f"Error: {e}")
+
 
 if __name__ == "__main__":
     main()
