@@ -6,7 +6,7 @@ Multi-agent system for detecting protein misfolding from amino acid sequences.
 
 | Agent | Role | Model |
 |-------|------|-------|
-| Agent 1 - The Mapper | Anomaly detection via ProstT5 3Di translation | Rostlab/ProstT5 |
+| Agent 1 - The Mapper | Anomaly detection via ProstT5 3Di translation | Facebook/ESM2 |
 | **Agent 2 - The Specialist** | Severity classification of structural anomalies | ministral-14b-latest |
 | Agent 3 - The Orchestrator | Synthesize findings into human-readable reports | Mistral Large |
 
