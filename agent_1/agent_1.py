@@ -11,8 +11,10 @@ import os
 
 class MapperAgent:
     def __init__(self, model_name="facebook/esm2_t33_650M_UR50D",
-                 baseline_path="latent_space_baseline.pt",
+                 baseline_path=None,
                  pdb_output_dir="Saved_PDBs"):
+        if baseline_path is None:
+            baseline_path = Path(__file__).parent / "baseline_weights" / "latent_space_baseline.pt"
 
         print("[Agent 1] Initializing Mapper Agent...")
         self.device = torch.device(
@@ -40,9 +42,14 @@ class MapperAgent:
         self.foldseek_bin = find_foldseek()
         print("[Agent 1] Initialization Complete.\n")
 
-    def translate_dna(self, dna_seq: str) -> str:
-        aa_sequence = str(Seq(dna_seq).translate()).replace("*", "")
-        return re.sub(r"[UZOB]", "X", aa_sequence)
+    def translate_dna(self, seq: str) -> str:
+        """Accept DNA or amino acid sequence. If DNA, translate; if AA, use as-is."""
+        sanitize = lambda s: re.sub(r"[UZOB]", "X", s.replace("*", ""))
+        try:
+            aa_sequence = str(Seq(seq).translate()).replace("*", "")
+            return sanitize(aa_sequence)
+        except Exception:
+            return sanitize(seq)
 
     def generate_embedding(self, aa_seq: str) -> torch.Tensor:
         inputs = self.tokenizer(aa_seq, return_tensors="pt")

@@ -9,7 +9,12 @@ def find_foldseek() -> str:
         path = shutil.which(name)
         if path:
             return path
-    raise FileNotFoundError("Foldseek executable not found in PATH.")
+    # Check project foldseek folder (e.g. protein-missfold-detection/foldseek/bin/foldseek)
+    project_root = Path(__file__).resolve().parent.parent
+    local_bin = project_root / "foldseek" / "bin" / "foldseek"
+    if local_bin.exists():
+        return str(local_bin)
+    raise FileNotFoundError("Foldseek executable not found in PATH or project foldseek/bin/.")
 
 
 def run_foldseek_pdb_to_3di(pdb_paths: list[Path], foldseek_bin: str, work_dir: Path) -> dict:
